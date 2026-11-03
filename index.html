@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FloraLens AI — Instant Plant Identification</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Outfit', sans-serif;
+            background: linear-gradient(135deg, #064e3b 0%, #022c22 50%, #0f172a 100%);
+            min-height: 100vh;
+        }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.07);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+        }
+        .glass-input {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+        }
+    </style>
+</head>
+<body class="text-white flex flex-col items-center justify-between p-4 md:p-8">
+    <header class="w-full max-w-4xl flex items-center justify-between py-4 border-b border-white/10">
+        <div class="flex items-center space-x-3">
+            <div class="w-10 h-10 rounded-xl bg-emerald-500/20 border border-emerald-400/30 flex items-center justify-center text-emerald-400 font-bold text-xl">🌱</div>
+            <span class="text-xl font-bold tracking-wide bg-gradient-to-r from-emerald-400 to-teal-300 bg-clip-text text-transparent">FloraLens AI</span>
+        </div>
+        <span class="text-xs uppercase tracking-widest px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-300 border border-emerald-500/20">University Prototype</span>
+    </header>
+
+    <main class="w-full max-w-3xl my-auto py-8">
+        <div class="text-center mb-8">
+            <h1 class="text-4xl md:text-5xl font-extrabold tracking-tight mb-3">Discover Any Plant Instantly</h1>
+            <p class="text-emerald-200/70 text-sm md:text-base max-w-xl mx-auto">Upload a clear photo of leaves, flowers, or bark to unlock complete botanical insights, care guides, and safety profiles.</p>
+        </div>
+
+        <div class="glass-card rounded-3xl p-6 md:p-8 transition-all">
+            <form id="uploadForm" class="space-y-6">
+                <div id="dropZone" class="border-2 border-dashed border-emerald-500/30 rounded-2xl p-8 text-center cursor-pointer hover:border-emerald-400 transition bg-emerald-950/20 relative group">
+                    <input type="file" id="imageInput" accept="image/*" class="absolute inset-0 opacity-0 cursor-pointer w-full h-full z-10">
+                    <div id="uploadPrompt" class="flex flex-col items-center space-y-3">
+                        <div class="w-16 h-16 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-3xl group-hover:scale-110 transition duration-300">🌿</div>
+                        <div>
+                            <p class="font-medium text-white text-base">Drag & drop your plant image here, or <span class="text-emerald-400 underline">browse</span></p>
+                            <p class="text-xs text-emerald-300/50 mt-1">Supports JPG, PNG, WEBP up to 10MB</p>
+                        </div>
+                    </div>
+                    <div id="previewContainer" class="hidden flex-col items-center space-y-3">
+                        <img id="imagePreview" class="max-h-48 rounded-xl object-cover shadow-lg border border-white/20" alt="Preview">
+                        <p id="fileName" class="text-xs text-emerald-300 font-medium"></p>
+                        <span class="text-xs text-emerald-400/80 bg-emerald-500/20 px-3 py-1 rounded-full">Click or drag another image to change</span>
+                    </div>
+                </div>
+
+                <button type="submit" id="submitBtn" disabled class="w-full py-4 rounded-2xl bg-emerald-600 hover:bg-emerald-500 disabled:bg-white/10 disabled:text-white/30 text-white font-semibold shadow-lg shadow-emerald-950/50 transition duration-300 flex items-center justify-center space-x-2">
+                    <span>Identify Plant Species</span>
+                </button>
+            </form>
+
+            <div id="loadingState" class="hidden text-center py-12 space-y-4">
+                <div class="inline-block w-12 h-12 border-4 border-emerald-400 border-t-transparent rounded-full animate-spin"></div>
+                <p class="text-emerald-300 font-medium animate-pulse">Analyzing botanical features & matching database...</p>
+            </div>
+
+            <div id="resultSection" class="hidden mt-8 pt-8 border-t border-white/10 space-y-6">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <span class="text-xs uppercase tracking-wider text-emerald-400 font-bold bg-emerald-500/10 px-3 py-1 rounded-full border border-emerald-500/20" id="resConfidence">Confidence: 98%</span>
+                        <h2 id="resCommonName" class="text-2xl md:text-3xl font-bold mt-2 text-white">Monstera Deliciosa</h2>
+                        <p id="resScientificName" class="text-sm italic text-emerald-300/80">Monstera deliciosa</p>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="glass-input p-4 rounded-2xl">
+                        <h4 class="text-xs font-bold uppercase tracking-wider text-emerald-400 mb-1 flex items-center gap-1.5">💧 Watering Needs</h4>
+                        <p id="resWatering" class="text-sm text-gray-200">Allow soil to dry out between waterings.</p>
+                    </div>
+                    <div class="glass-input p-4 rounded-2xl">
+                        <h4 class="text-xs font-bold uppercase tracking-wider text-emerald-400 mb-1 flex items-center gap-1.5">☀️ Sunlight</h4>
+                        <p id="resSunlight" class="text-sm text-gray-200">Bright, indirect sunlight.</p>
+                    </div>
+                    <div class="glass-input p-4 rounded-2xl">
+                        <h4 class="text-xs font-bold uppercase tracking-wider text-rose-400 mb-1 flex items-center gap-1.5">⚠️ Toxicity Warning</h4>
+                        <p id="resToxicity" class="text-sm text-gray-200">Toxic to household pets.</p>
+                    </div>
+                    <div class="glass-input p-4 rounded-2xl">
+                        <h4 class="text-xs font-bold uppercase tracking-wider text-emerald-400 mb-1 flex items-center gap-1.5">🌱 Family & Uses</h4>
+                        <p id="resUses" class="text-sm text-gray-200">Air-purifying indoor ornamental.</p>
+                    </div>
+                </div>
+
+                <button onclick="resetApp()" class="w-full py-3 rounded-xl bg-white/10 hover:bg-white/20 text-white text-sm font-medium transition">
+                    Scan Another Plant
+                </button>
+            </div>
+        </div>
+    </main>
+
+    <footer class="w-full max-w-4xl text-center py-4 border-t border-white/10 text-xs text-emerald-300/50">
+        <p>FloraLens AI Prototype &bull; Built for University Showcase</p>
+    </footer>
+
+    <script>
+        const imageInput = document.getElementById('imageInput');
+        const uploadPrompt = document.getElementById('uploadPrompt');
+        const previewContainer = document.getElementById('previewContainer');
+        const imagePreview = document.getElementById('imagePreview');
+        const fileName = document.getElementById('fileName');
+        const submitBtn = document.getElementById('submitBtn');
+        const uploadForm = document.getElementById('uploadForm');
+        const loadingState = document.getElementById('loadingState');
+        const resultSection = document.getElementById('resultSection');
+
+        let selectedFile = null;
+
+        imageInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                selectedFile = file;
+                fileName.textContent = file.name;
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    imagePreview.src = e.target.result;
+                    uploadPrompt.classList.add('hidden');
+                    previewContainer.classList.remove('hidden');
+                    previewContainer.classList.add('flex');
+                    submitBtn.removeAttribute('disabled');
+                }
+                reader.readAsDataURL(file);
+            }
+        });
+
+        uploadForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            if (!selectedFile) return;
+
+            uploadForm.classList.add('hidden');
+            loadingState.classList.remove('hidden');
+
+            const formData = new FormData();
+            formData.append('file', selectedFile);
+
+            try {
+                const response = await fetch('/api/identify', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+                
+                if (response.ok && data.success) {
+                    document.getElementById('resCommonName').textContent = data.common_name;
+                    document.getElementById('resScientificName').textContent = data.scientific_name;
+                    document.getElementById('resConfidence').textContent = `Match Confidence: ${data.confidence}`;
+                    document.getElementById('resWatering').textContent = data.watering;
+                    document.getElementById('resSunlight').textContent = data.sunlight;
+                    document.getElementById('resToxicity').textContent = data.toxicity;
+                    document.getElementById('resUses').textContent = data.uses;
+
+                    loadingState.classList.add('hidden');
+                    resultSection.classList.remove('hidden');
+                } else {
+                    alert(data.detail || data.message || 'Recognition failed. Please try again.');
+                    resetApp();
+                }
+            } catch (err) {
+                alert('An error occurred while connecting to the server.');
+                resetApp();
+            }
+        });
+
+        function resetApp() {
+            selectedFile = null;
+            imageInput.value = '';
+            previewContainer.classList.add('hidden');
+            previewContainer.classList.remove('flex');
+            uploadPrompt.classList.remove('hidden');
+            submitBtn.setAttribute('disabled', 'true');
+            loadingState.classList.add('hidden');
+            resultSection.classList.add('hidden');
+            uploadForm.classList.remove('hidden');
+        }
+    </script>
+</body>
+</html>
